@@ -1,0 +1,43 @@
+# TODO
+
+- [ ] Rewrite CLI to not know what the internal `.axiom` structure looks like;
+      move such code into the library portion.
+- [ ] `update` should warn if you are updating to an older version of Minecraft.
+- [ ] Create a command to download `version_manifest.json` and cache it,
+      then use crontab to routinely run this command.
+- [ ] Create a command to download PaperMC build metadata and cache it,
+      then use crontab to routinely run this command.
+- [ ] Find out how to check if a Symbolic Link is broken (`update`)
+- [ ] Auto-install the latest version of the Axiom plugin (`start`)
+- [ ] `start` should create the pipe file (both Linux and Windows)
+      +Update plugin to read from Windows path
+- [ ] `stop` command should delete the pipe (both Linux and Windows)
+- [ ] Change `String` parameters to `&str` where it is harder to use the function.
+- [ ] Update Axiom plugin to use a TCP server with proper Authorization;
+      Ensure only the Axiom lib can send commands to the server
+
+# Commands
+
+- Server
+  - [x] Create
+  - [x] Delete
+  - [ ] Edit
+  - [ ] Info
+  - [x] List
+  - [x] Start
+  - [ ] Status (https://wiki.vg/Server_List_Ping)
+  - [ ] Stop: Send 'stop' to named pipe (if exists) then delete it,
+        (Must be using Axiom plugin, which is currently unsafe)
+        otherwise send SIGTERM to PID...?
+  - [x] Update
+- Backups: Turn off auto-save, manually save, backup world, turn on auto-save.
+  - [ ] Create
+  - [ ] Load
+  - [ ] Fork?: Start a new world from a backup (maybe)
+  - [ ] SetLimit: Limit the number of backups a directory can have
+- Plugins
+  - [ ] Add: (from URL or File)
+  - [ ] Update: (from URL or File)
+  - [ ] Remove
+  - [ ] Disable: Move plugin to `_disabled` directory to temporarily disable it
+  - [ ] Enable: Move plugin out of `_disabled` into the `plugins` directory

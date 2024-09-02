@@ -1,0 +1,12 @@
+[package]
+name = "axiom_cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.86"
+axiom = { version = "0.1.0", path = ".." }
+clap = { version = "4.5.16", features = ["derive"] }
+log = "0.4.22"
+simple_logger = "5.0.0"
+symlink = "0.1.0"

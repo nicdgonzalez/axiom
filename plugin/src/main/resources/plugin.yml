@@ -1,0 +1,8 @@
+name: ${name}
+version: ${version}
+main: io.github.nicdgonzalez.axiom.Axiom
+description: Allows Axiom to execute commands from external services.
+author: Nicolas Gonzalez
+website: https://github.com/nicdgonzalez/axiom
+api-version: "1.21.1"
+prefix: Axiom
