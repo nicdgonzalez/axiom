@@ -20,7 +20,7 @@ pub fn handler(name: &str, version: &Option<String>, accept_eula: &bool) -> anyh
         }
     }
 
-    log::info!("Running the server to generate intial files...");
+    log::info!("Running the server to generate initial files...");
     let mut command = std::process::Command::new("java");
     let mut child = match command
         .args(["-jar", server_path.join("server.jar").to_str().unwrap()])
@@ -41,7 +41,7 @@ pub fn handler(name: &str, version: &Option<String>, accept_eula: &bool) -> anyh
 
     // Running the server for the first time always fails,
     // telling the user to accept the Minecraft EULA before continuing
-    child.wait().expect("Command wasn't running");
+    child.wait()?;
 
     if !accept_eula {
         println!(
