@@ -2,6 +2,7 @@
 
 mod create;
 mod delete;
+mod edit;
 mod list;
 mod start;
 mod update;
@@ -16,7 +17,7 @@ pub fn handle_command(command: &Command) -> anyhow::Result<()> {
             accept_eula,
         } => create::handler(name, version, accept_eula),
         Command::Delete { name, assume_yes } => delete::handler(name, assume_yes),
-        Command::Edit { name: _ } => todo!(),
+        Command::Edit { name } => edit::handler(name),
         Command::Info { name: _ } => todo!(),
         Command::List => list::handler(),
         Command::Start { name } => start::handler(name),
@@ -25,4 +26,3 @@ pub fn handle_command(command: &Command) -> anyhow::Result<()> {
         Command::Update { name, version } => update::handler(name, version),
     }
 }
-
