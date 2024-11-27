@@ -15,13 +15,15 @@ and focused. I have no current plans to support other server providers.
 
 **Requirements**:
 
-- Java 20+
-- tmux
+| Name | Version | Description |
+|:-----|:--------|:------------|
+| Java | 20+ | To run the Paper Minecraft server
+| tmux | 3.5a+ | To attach/detach from the Minecraft console as needed
 
 ### Quickstart
 
-> [!NOTE]
-> This software is only developed and tested on Linux.
+> [!WARNING]
+> This software is developed and tested on Linux only.
 
 Install the project using `cargo` by running the following command:
 
@@ -37,7 +39,7 @@ If you downloaded one of the pre-built binaries, replace `axiom` with the path
 to the executable. For example:
 
 ```bash
-"$(xdg-user-dir DOWNLOAD)/axiom-0.1.0" help
+"$(xdg-user-dir DOWNLOAD)/axiom" help
 ```
 
 Here is a brief overview of some of the current commands.
@@ -47,27 +49,27 @@ Here is a brief overview of some of the current commands.
 > as valid directory names. For example, "My World" becomes "my-world" and both
 > can be used interchangeably anywhere that a command requires `name`.
 
-- To create a new server (omitting the version defaults to the latest, stable
-  build available):
+- To create a new server (NOTE: omitting the version defaults to the latest,
+  stable build available):
 
 ```bash
 # The Minecraft version is optional.
 axiom new "My World" 1.21.3
 
-# To get the latest release, whether experimental or not:
-axiom new --allow-experimental "My World"
+# To get the latest, stable release:
+axiom new "My World"
 ```
 
 - To list information on available servers:
 
-```console
-$ axiom list
+```bash
+axiom list
 ```
 
 - To change the version of Minecraft a server is using:
 
 ```bash
-# To update to the latest version, whatever it is:
+# To update to the latest version (stable or experimental):
 axiom update --allow-experimental my-world
 
 # Because switching to an older version of Minecraft may corrupt your world,
@@ -92,8 +94,6 @@ axiom backup new --wait my-world
 ```bash
 axiom help
 ```
-
-For additional documentation, try the `cargo doc` command.
 
 ## License
 
