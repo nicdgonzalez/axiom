@@ -46,7 +46,7 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
 
     let mut build = axiom::get_paper_build_latest(&version)?;
 
-    if !args.allow_experimental {
+    if !args.allow_experimental && build.channel == ChannelKind::Experimental {
         eprintln!(
             "Version {} is marked as experimental, but '{}' was not set",
             version.cyan(),
