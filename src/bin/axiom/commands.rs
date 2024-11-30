@@ -11,6 +11,7 @@ pub mod update;
 
 #[derive(clap::Subcommand)]
 pub enum Command {
+    /// A collection of backup-related commands.
     Backup(backup::Args),
     /// Create a new Minecraft server.
     New(new::Args),
@@ -41,7 +42,5 @@ pub fn handle_command(command: &Command) -> Result<(), anyhow::Error> {
         Command::Start(args) => start::run(args),
         Command::Stop(args) => stop::run(args),
         Command::Update(args) => update::run(args),
-    };
-
-    Ok(())
+    }
 }

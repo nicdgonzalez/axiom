@@ -25,13 +25,13 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
     std::fs::create_dir(&server).with_context(|| "failed to create server directory")?;
 
     // Use the `update` command to download the target server.jar file.
-    if let Err(why) = update(UpdateArgs {
+    if let Err(why) = update(&UpdateArgs {
         name: args.name.clone(),
         version: args.version.clone(),
         allow_experimental: false,
         allow_downgrade: false,
     }) {
-        delete(DeleteArgs {
+        delete(&DeleteArgs {
             name: args.name.clone(),
             assume_yes: true,
         })?;
@@ -40,7 +40,7 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
 
     eprintln!("Running server to generate initial files...");
     if let Err(why) = generate_initial_files(&server) {
-        delete(DeleteArgs {
+        delete(&DeleteArgs {
             name: args.name.clone(),
             assume_yes: true,
         })?;
@@ -48,7 +48,7 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
     }
 
     if !args.accept_eula && !prompt_user_to_accept_eula() {
-        delete(DeleteArgs {
+        delete(&DeleteArgs {
             name: args.name.clone(),
             assume_yes: true,
         })?;
@@ -69,7 +69,7 @@ fn generate_initial_files(server: &std::path::PathBuf) -> Result<(), anyhow::Err
         .stdout(std::process::Stdio::null())
         .stdin(std::process::Stdio::null())
         .spawn()?
-        .wait();
+        .wait()?;
 
     Ok(())
 }
