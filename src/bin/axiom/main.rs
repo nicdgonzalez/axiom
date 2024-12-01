@@ -6,7 +6,7 @@ use colored::Colorize;
 
 #[derive(clap::Parser)]
 #[command(version)]
-pub struct CLI {
+pub struct Args {
     #[command(subcommand)]
     pub command: commands::Command,
 }
@@ -22,7 +22,7 @@ fn main() {
 
 fn try_main() -> anyhow::Result<()> {
     axiom::init().with_context(|| "failed to initialize Axiom")?;
-    let args = CLI::parse();
+    let args = Args::parse();
     commands::handle_command(&args.command)?;
 
     Ok(())

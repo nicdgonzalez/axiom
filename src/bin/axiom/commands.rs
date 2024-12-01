@@ -1,4 +1,5 @@
 pub mod backup;
+pub mod plugin;
 
 pub mod delete;
 pub mod fork;
@@ -13,6 +14,7 @@ pub mod update;
 pub enum Command {
     /// A collection of backup-related commands.
     Backup(backup::Args),
+    Plugin(plugin::Args),
     /// Create a new Minecraft server.
     New(new::Args),
     /// Permanently remove an existing Minecraft server.
@@ -34,6 +36,7 @@ pub enum Command {
 pub fn handle_command(command: &Command) -> Result<(), anyhow::Error> {
     match &command {
         Command::Backup(subcommand) => backup::handle_command(&subcommand.command),
+        Command::Plugin(subcommand) => plugin::handle_command(&subcommand.command),
         Command::New(args) => new::run(args),
         Command::Delete(args) => delete::run(args),
         Command::Fork(args) => fork::run(args),
