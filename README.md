@@ -42,6 +42,23 @@ to the executable. For example:
 "$(xdg-user-dir DOWNLOAD)/axiom" help
 ```
 
+or, move the the executable to a directory on path:
+
+```bash
+echo "$PATH" | grep -E "(^|:)$HOME/\.local/bin(:|$)" > /dev/null \
+    && echo "$HOME/.local/bin exists on PATH" \
+    || echo "$HOME/.local/bin does not exist on PATH"
+
+# This directory should be on PATH (XDG Base Directory Specification),
+# but sometimes needs to be created manually.
+[ ! -e "$HOME/.local/bin" ] \
+    && mkdir --parents "$HOME/.local/bin" \
+    || echo "$HOME/.local/bin exists!"
+
+# Move the binary from the Downloads directory into `$HOME/.local/bin`.
+mv "$(xdg-user-dir DOWNLOAD)/axiom" "$HOME/.local/bin/axiom"
+```
+
 Here is a brief overview of some of the current commands.
 
 > [!NOTE]
