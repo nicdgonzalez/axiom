@@ -1,7 +1,7 @@
 # Axiom
 
 > [!WARNING]
-> This project is under active development and is currently unstable.
+> This project is under active development and makes frequent breaking changes.
 
 ## Introduction
 
