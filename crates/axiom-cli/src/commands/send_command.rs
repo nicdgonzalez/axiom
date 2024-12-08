@@ -15,11 +15,14 @@ pub struct Args {
 pub fn run(args: &Args) -> Result<(), anyhow::Error> {
     let session_name = format!("axiom_{}", args.name);
 
-    if !axiom::tmux::exists(&session_name)? {
+    if !tmux::exists(&session_name)? {
         return Err(anyhow!("tmux session '{}' not found", session_name));
     }
 
-    axiom::tmux::send_command(&session_name, &args.command)?;
-    println!("{}", "Command sent successfully!".green());
+    tmux::send_command(&session_name, &args.command)?;
+    eprintln!("{}", "Command sent successfully!".green());
     Ok(())
+
+    // TODO: Add option to capture N lines of `tmux capture-pane` output
+    // after waiting M seconds.
 }

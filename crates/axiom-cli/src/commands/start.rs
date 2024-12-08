@@ -1,5 +1,7 @@
 //! Implementation for the `start` command.
 
+use std::process;
+
 use anyhow::Context;
 use colored::Colorize;
 
@@ -12,11 +14,29 @@ pub struct Args {
 /// Open a server, allowing players to connect to the world.
 pub fn run(args: &Args) -> Result<(), anyhow::Error> {
     let (name, server) = axiom::validate_server_exists(&args.name)?;
+    let window_name = format!("axiom:{}", &name);
 
-    let session_name = format!("axiom_{}", &name);
-    axiom::tmux::create(&session_name, Some(server))
-        .with_context(|| "failed to create tmux session")?;
+    // Create tmux session named "axiom" if it does not already exist.
+    let session = tmux::Session::new("axiom");
 
+    if !session.exists()? {
+        session.create(Some(server))?;
+    }
+
+    // Check if there is already an existing window for this server:
+    //
+    // TODO: Use tmux::Window when it becomes available.
+    if !tmux::Session::new(&window_name).exists()? {
+        let status = process::Command::new("tmux")
+            .args(["new-window", "-t", "axiom", "-n", &name])
+            .stdout(process::Stdio::null())
+            .stderr(process::Stdio::null())
+            .status()?;
+
+        debug_assert!(status.success());
+    }
+
+    // Start the server.
     let command = [
         "java",
         "-Xms5G",
@@ -46,13 +66,16 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
         "--nogui",
     ];
 
-    axiom::tmux::send_command(&session_name, &command.join(" "))
+    // TODO: Use Window::send_keys when it becomes available.
+    tmux::send_command(&window_name, &command.join(" "))
         .with_context(|| "failed to start server in tmux session")?;
 
-    println!(
+    eprintln!(
         "{}",
         "Server starting! You should be able to connect soon.".yellow()
     );
+
+    // TODO: Add option to poll `tmux capture-pane` until server says ready.
 
     Ok(())
 }

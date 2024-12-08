@@ -1,0 +1,10 @@
+[package]
+name = "axiom"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+dirs = "5.0.1"
+reqwest = { version = "0.12.9", features = ["blocking"] }
+serde_json = "1.0.133"

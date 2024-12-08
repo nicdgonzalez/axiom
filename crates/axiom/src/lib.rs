@@ -1,28 +1,8 @@
-// Axiom is a collection of tools for managing Minecraft servers.
-// Copyright (C) 2024  Nicolas "nicdgonzalez" Gonzalez
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+// TODO: Organize this file better...
 
-//! # Axiom
-//!
-//! Axiom is a collection of tool for managing Minecraft servers.
-//!
-//! TODO
+use std::io::BufRead;
 
 use anyhow::anyhow;
-
-pub mod tmux;
 
 pub fn init() -> anyhow::Result<()> {
     let backups = get_backups_path()?;
@@ -121,65 +101,6 @@ pub fn validate_server_not_exists(name: &str) -> anyhow::Result<(String, std::pa
     Ok((name, server))
 }
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// pub enum VersionKind {
-//     OldAlpha,
-//     OldBeta,
-//     Snapshot,
-//     Release,
-// }
-//
-// #[derive(Debug, Clone)]
-// pub struct Version {
-//     pub id: String,
-//     pub kind: VersionKind,
-// }
-//
-// pub fn get_minecraft_versions() -> anyhow::Result<Vec<Version>> {
-//     static URL: &'static str = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
-//
-//     let client = reqwest::blocking::Client::new();
-//     let response = client.get(URL).send()?.text()?;
-//
-//     let data: serde_json::Value = serde_json::from_str(&response)?;
-//     let data = data.as_object().expect("expected JSON object");
-//
-//     let versions: Vec<Version> = data
-//         .get("versions")
-//         .expect("expected field 'versions'")
-//         .as_array()
-//         .expect("expected 'versions' to be an array")
-//         .iter()
-//         .map(|v| {
-//             let version = v.as_object().expect("expected JSON object");
-//
-//             let id = version
-//                 .get("id")
-//                 .expect("expected field 'id'")
-//                 .as_str()
-//                 .expect("expected 'id' to be a string")
-//                 .to_owned();
-//
-//             let kind = match version
-//                 .get("type")
-//                 .expect("expected field 'type'")
-//                 .as_str()
-//                 .expect("expected 'type' to be a string")
-//             {
-//                 "old_alpha" => VersionKind::OldAlpha,
-//                 "old_beta" => VersionKind::OldBeta,
-//                 "snapshot" => VersionKind::Snapshot,
-//                 "release" => VersionKind::Release,
-//                 _ => unreachable!(),
-//             };
-//
-//             Version { id, kind }
-//         })
-//         .collect();
-//
-//     Ok(versions)
-// }
-
 static BASE_URL: &str = "https://api.papermc.io/v2";
 
 pub fn get_paper_server_versions() -> anyhow::Result<Vec<String>> {
@@ -268,7 +189,7 @@ pub fn get_paper_build_latest(version: &str) -> anyhow::Result<Build> {
                 .to_string();
 
             Build {
-                version: version.to_string(),
+                version: version.to_owned(),
                 build,
                 channel,
                 filename,
@@ -313,4 +234,49 @@ pub fn get_paper_server_jar(build: &Build) -> anyhow::Result<ServerJar> {
         filename: build.filename.to_owned(),
         data,
     })
+}
+
+pub fn get_version_installed(server_jar: &std::path::PathBuf) -> Option<String> {
+    let file = server_jar
+        .exists()
+        .then(|| {
+            server_jar.is_symlink().then(|| {
+                server_jar
+                    .read_link()
+                    .expect("failed to follow server.jar symlink")
+            })
+        })
+        .flatten()
+        .or_else(|| Some(server_jar.to_path_buf()));
+
+    let version = file.and_then(|f| {
+        f.file_name()
+            .and_then(|name| name.to_str())
+            .and_then(|name_str| name_str.split('-').nth(1))
+            .map(|version| version.to_string())
+    });
+
+    version
+}
+
+// NOTE: This method is slow... maybe lock behind a flag in case you
+// *really* want to know which version the server is using?
+pub fn get_server_version(server_jar: &std::path::PathBuf) -> Option<String> {
+    let output = std::process::Command::new("java")
+        .args([
+            "-jar",
+            server_jar
+                .to_str()
+                .expect("expected path to be valid unicode"),
+            "--version",
+        ])
+        .current_dir(server_jar.parent().unwrap())
+        .output()
+        .expect("failed to execute java command");
+
+    output
+        .stdout
+        .lines()
+        .last()
+        .and_then(|line| line.ok()?.split('-').nth(0).map(String::from))
 }

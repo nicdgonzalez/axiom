@@ -1,5 +1,13 @@
+pub mod errors;
+mod session;
+mod window;
+
+pub use session::*;
+pub use window::*;
+
 use anyhow::anyhow;
 
+#[deprecated(note = "Use Session::exists instead")]
 pub fn exists(name: &str) -> anyhow::Result<bool> {
     let result = std::process::Command::new("tmux")
         .args(["has-session", "-t", name])
@@ -11,6 +19,7 @@ pub fn exists(name: &str) -> anyhow::Result<bool> {
     Ok(result)
 }
 
+#[deprecated(note = "Use Session::create instead")]
 pub fn create(name: &str, directory: Option<std::path::PathBuf>) -> anyhow::Result<()> {
     if exists(name)? {
         return Ok(());
@@ -39,6 +48,7 @@ pub fn create(name: &str, directory: Option<std::path::PathBuf>) -> anyhow::Resu
     }
 }
 
+#[deprecated(note = "Use Session::kill instead")]
 pub fn destroy(name: &str) -> anyhow::Result<()> {
     if !exists(name)? {
         return Ok(());
@@ -57,6 +67,7 @@ pub fn destroy(name: &str) -> anyhow::Result<()> {
     }
 }
 
+#[deprecated(note = "Use Session::send_keys instead")]
 pub fn send_command(name: &str, command: &str) -> anyhow::Result<()> {
     if !exists(name)? {
         return Err(anyhow!("tmux session with name '{name}' does not exist"));

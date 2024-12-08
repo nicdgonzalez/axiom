@@ -17,6 +17,9 @@ pub struct Args {
     /// Automatically accept the Minecraft EULA without user input.
     #[arg(short = 'y', long)]
     pub accept_eula: bool,
+    /// Allow the server to use an experimental build of Paper (if applicable).
+    #[arg(long)]
+    pub allow_experimental: bool,
 }
 
 /// Create a new Minecraft server.
@@ -28,7 +31,7 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
     if let Err(why) = update(&UpdateArgs {
         name: args.name.clone(),
         version: args.version.clone(),
-        allow_experimental: false,
+        allow_experimental: args.allow_experimental,
         allow_downgrade: false,
     }) {
         delete(&DeleteArgs {

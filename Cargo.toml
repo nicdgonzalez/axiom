@@ -1,17 +1,12 @@
-[package]
-name = "axiom"
-version = "0.1.0"
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
 edition = "2021"
 
-[dependencies]
+[workspace.dependencies]
+axiom = { path = "crates/axiom" }
+tmux = { path = "crates/tmux" }
+
 anyhow = "1.0.93"
-dirs = "5.0.1"
-chrono = "0.4.38"
-clap = { version = "4.5.21", features = ["derive"] }
-colored = "2.1.0"
-flate2 = "1.0.35"
-tar = "0.4.43"
-reqwest = { version = "0.12.9", features = ["blocking"] }
-serde_json = "1.0.133"
-symlink = "0.1.0"
-semver = "1.0.23"

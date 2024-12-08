@@ -47,10 +47,9 @@ fn handle_backup_process(
     let session_name = format!("axiom_{}", &name);
 
     // Temporarily disable auto-save if the server is running.
-    if let Ok(true) = axiom::tmux::exists(&session_name) {
-        axiom::tmux::send_command(&session_name, "save-off")
-            .expect("failed to send save-off command");
-        axiom::tmux::send_command(
+    if let Ok(true) = tmux::exists(&session_name) {
+        tmux::send_command(&session_name, "save-off").expect("failed to send save-off command");
+        tmux::send_command(
             &session_name,
             "say Server backup in progress. Auto-save has been disabled!",
         )
@@ -70,10 +69,9 @@ fn handle_backup_process(
     }
 
     // Backup complete; turn auto-save back on.
-    if let Ok(true) = axiom::tmux::exists(&session_name) {
-        axiom::tmux::send_command(&session_name, "save-on")
-            .expect("failed to send save-on command");
-        axiom::tmux::send_command(
+    if let Ok(true) = tmux::exists(&session_name) {
+        tmux::send_command(&session_name, "save-on").expect("failed to send save-on command");
+        tmux::send_command(
             &session_name,
             "say Server backup complete. Auto-save has been re-enabled!",
         )

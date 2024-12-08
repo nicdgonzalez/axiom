@@ -1,6 +1,6 @@
 //! Implementation for the `update` command.
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fs, path};
 
 use anyhow::{anyhow, Context};
 use axiom::ChannelKind;
@@ -56,7 +56,9 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
             versions.iter().take_while(|v| *v != version).collect();
 
         while build.channel == ChannelKind::Experimental {
-            version = versions_lower.pop().expect("no lower versions available");
+            version = versions_lower
+                .pop()
+                .with_context(|| "no lower versions available")?;
             eprintln!("Attempting to use version {} instead.", version.cyan());
             build = axiom::get_paper_build_latest(&version)?;
         }
@@ -65,7 +67,7 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
     let server_jar = server.join("server.jar");
 
     if !args.allow_downgrade {
-        let version_installed = get_version_installed(&server_jar);
+        let version_installed = axiom::get_version_installed(&server_jar);
         #[rustfmt::skip]
         validate_no_downgrade(version_installed, &version)
             .with_context(|| {
@@ -76,38 +78,15 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
     let paper_jar = get_paper_jar(&build)?;
 
     if server_jar.exists() {
-        std::fs::remove_file(&server_jar).with_context(|| "failed to remove server.jar")?;
+        fs::remove_file(&server_jar).with_context(|| "failed to remove server.jar")?;
     }
 
     symlink::symlink_file(&paper_jar, &server_jar)
         .with_context(|| "failed to link target JAR to server.jar")?;
 
     #[rustfmt::skip]
-    println!("{}", format!("Server '{name}' is now running Minecraft {}!", version.cyan()).green());
+    println!("{}", format!("Server {name} is now running Minecraft version: {}", version.cyan()).green());
     Ok(())
-}
-
-fn get_version_installed(server_jar: &std::path::PathBuf) -> Option<String> {
-    let file = server_jar
-        .exists()
-        .then(|| {
-            server_jar.is_symlink().then(|| {
-                server_jar
-                    .read_link()
-                    .expect("failed to follow server.jar symlink")
-            })
-        })
-        .flatten()
-        .or_else(|| Some(server_jar.to_path_buf()));
-
-    let version = file.and_then(|f| {
-        f.file_name()
-            .and_then(|name| name.to_str())
-            .and_then(|name_str| name_str.split('-').nth(1))
-            .map(|version| version.to_string())
-    });
-
-    version
 }
 
 fn validate_no_downgrade(
@@ -133,13 +112,13 @@ fn validate_no_downgrade(
     Ok(())
 }
 
-fn get_paper_jar(build: &axiom::Build) -> Result<std::path::PathBuf, anyhow::Error> {
+fn get_paper_jar(build: &axiom::Build) -> Result<path::PathBuf, anyhow::Error> {
     let build = axiom::get_paper_build_latest(&build.version)?;
     let paper_jar_path = axiom::get_jars_path()?.join(&build.filename);
 
     if !paper_jar_path.exists() {
         let paper_jar = axiom::get_paper_server_jar(&build)?;
-        std::fs::write(&paper_jar_path, &paper_jar.data)
+        fs::write(&paper_jar_path, &paper_jar.data)
             .with_context(|| "failed to save downloaded server.jar")?;
     } else {
         eprintln!(

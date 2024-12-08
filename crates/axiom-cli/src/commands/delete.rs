@@ -42,6 +42,6 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
         std::fs::remove_dir_all(&server_backups)?;
     }
 
-    println!("Server '{name}' has been deleted.");
+    eprintln!("{}", format!("Server '{name}' has been deleted.").green());
     Ok(())
 }
