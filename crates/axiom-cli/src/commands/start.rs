@@ -20,7 +20,7 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
     let session = tmux::Session::new("axiom");
 
     if !session.exists()? {
-        session.create(Some(server))?;
+        session.create(Some(&server))?;
     }
 
     // Check if there is already an existing window for this server:
@@ -28,7 +28,15 @@ pub fn run(args: &Args) -> Result<(), anyhow::Error> {
     // TODO: Use tmux::Window when it becomes available.
     if !tmux::Session::new(&window_name).exists()? {
         let status = process::Command::new("tmux")
-            .args(["new-window", "-t", "axiom", "-n", &name])
+            .args([
+                "new-window",
+                "-t",
+                "axiom",
+                "-n",
+                &name,
+                "-c",
+                &server.to_str().unwrap(),
+            ])
             .stdout(process::Stdio::null())
             .stderr(process::Stdio::null())
             .status()?;

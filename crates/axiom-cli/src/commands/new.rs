@@ -70,7 +70,7 @@ fn generate_initial_files(server: &std::path::PathBuf) -> Result<(), anyhow::Err
         .args(["-jar", "server.jar"])
         .current_dir(&server)
         .stdout(std::process::Stdio::null())
-        .stdin(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
         .spawn()?
         .wait()?;
 

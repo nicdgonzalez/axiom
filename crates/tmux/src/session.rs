@@ -1,4 +1,4 @@
-use std::process;
+use std::{path, process};
 
 use crate::errors::TmuxError;
 
@@ -43,7 +43,7 @@ impl Session {
         let result = process::Command::new("tmux")
             .args(["has-session", "-t", &format!("={}", self.name)])
             .stdout(process::Stdio::null())
-            .stdin(process::Stdio::null())
+            .stderr(process::Stdio::null())
             .status()
             .map_err(|_| TmuxError::FailedToRunCommand)?
             .success();
@@ -69,7 +69,7 @@ impl Session {
     ///     assert_eq!(session.exists().unwrap(), true);
     /// }
     /// ```
-    pub fn create(&self, start_directory: Option<std::path::PathBuf>) -> Result<(), TmuxError> {
+    pub fn create(&self, start_directory: Option<&path::PathBuf>) -> Result<(), TmuxError> {
         if self.exists()? {
             return Err(TmuxError::SessionAlreadyExists(self.name.clone()));
         }
@@ -78,7 +78,7 @@ impl Session {
         command
             .args(["new-session", "-d", "-s", &self.name])
             .stdout(process::Stdio::null())
-            .stdin(process::Stdio::null());
+            .stderr(process::Stdio::null());
 
         if let Some(directory) = start_directory {
             command.args([
@@ -111,7 +111,7 @@ impl Session {
         let status = process::Command::new("tmux")
             .args(["kill-session", "-t", &self.name])
             .stdout(process::Stdio::null())
-            .stdin(process::Stdio::null())
+            .stderr(process::Stdio::null())
             .status()
             .map_err(|_| TmuxError::FailedToRunCommand)?;
 
