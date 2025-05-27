@@ -7,9 +7,11 @@ use colored::Colorize;
 
 #[derive(Debug, clap::Args)]
 pub(crate) struct StatusCommand {
+    /// The IP address or hostname of the target Minecraft server.
     #[arg(long, short = 'H', default_value = "127.0.0.1")]
     hostname: String,
 
+    /// The port number on which the Minecraft server is listening for connections.
     #[arg(long, short = 'p', default_value = "25565")]
     port: u16,
 }
@@ -67,28 +69,25 @@ impl crate::commands::Run for StatusCommand {
         send_status_request_packet(&mut socket)
             .with_context(|| "Failed to send status request packet")?;
 
-        let StatusResponse {
-            description,
-            favicon: _,
-            players,
-            version,
-        } = get_status_response(&mut socket).with_context(|| "Failed to get status response")?;
+        let response =
+            get_status_response(&mut socket).with_context(|| "Failed to get status response")?;
 
         let mut stdout = std::io::stdout().lock();
 
-        writeln!(stdout, "{}: {}", "Connected to".bold(), server_address).ok();
-
-        let motd = description
+        let motd = response
+            .description
             .and_then(|description| Some(description.text))
             .unwrap_or("None".to_owned());
-        writeln!(stdout, "{}: {motd}", "MOTD".bold()).ok();
 
-        let players = players
+        let players = response
+            .players
             .and_then(|players| Some(players.online.to_string()))
             .unwrap_or("???".to_owned());
-        writeln!(stdout, "{}: {players}", "Players Online".bold()).ok();
 
-        writeln!(stdout, "{}: {}", "Version".bold(), version.name).ok();
+        writeln!(stdout, "{}: {}", "Server Address".bold(), server_address).ok();
+        writeln!(stdout, "{}: {}", "MOTD".bold(), motd).ok();
+        writeln!(stdout, "{}: {}", "Players Online".bold(), players).ok();
+        writeln!(stdout, "{}: {}", "Version".bold(), response.version.name).ok();
 
         Ok(())
     }
@@ -134,14 +133,14 @@ where
     let mut handshake: Vec<u8> = Vec::with_capacity(1 + 1 + address_length.len() + 2 + 1);
 
     // Packet ID
-    // For VarInts with values less than 127 (0x7F), don't use the `varint_encode` function since
+    // For VarInts with a value less than 127 (0x7F), don't use the `varint_encode` function since
     // these values are already in the proper format.
     handshake.push(0x00);
 
     // Protocol version
     //
     // `110` is the highest valid protocol number under 127. This is a minor optimization to avoid
-    // having to encode a value. (NOTE: This value is not important for the ping.)
+    // having to encode the value. (NOTE: This value is not important for the ping.)
     handshake.push(110);
 
     // Server address
@@ -186,7 +185,6 @@ fn varint_encode(value: u32) -> Vec<u8> {
     buffer
 }
 
-/// Represents an error that may occur while decoding a VarInt.
 #[derive(Debug)]
 enum DecodeError {
     ValueTooLarge,

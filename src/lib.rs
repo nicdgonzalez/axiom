@@ -5,6 +5,7 @@
 #![warn(missing_docs)]
 
 mod commands;
+mod tmux;
 
 use clap::Parser;
 use tracing_subscriber::prelude::*;
@@ -19,7 +20,7 @@ struct Args {
     verbose: u8,
 }
 
-/// Represents the exit status of the application.
+/// Represents the exit status of the program.
 pub enum ExitCode {
     /// The program terminated without any errors.
     Success = 0,
@@ -33,7 +34,7 @@ impl std::process::Termination for ExitCode {
     }
 }
 
-/// The main entry point to the application.
+/// The main entry point to the program.
 pub fn run() -> anyhow::Result<ExitCode> {
     let args = Args::parse();
     let level_filter = {
