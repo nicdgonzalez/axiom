@@ -1,10 +1,14 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
+mod args;
 mod commands;
-mod varint;
+mod config;
+mod error;
+mod hint;
 
 use clap::Parser;
+pub use error::Error;
 use tracing_subscriber::prelude::*;
 
 #[derive(Debug, clap::Parser)]

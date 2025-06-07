@@ -11,6 +11,10 @@ fn main() -> ExitCode {
 
         for cause in err.chain() {
             writeln!(stderr, "  {}: {}", "Cause".bold(), cause).ok();
+
+            if let Some(hint) = err.downcast_ref::<axiom::Error>().and_then(|e| e.hint()) {
+                writeln!(stderr, "  {}: {}", "Hint".bold().green(), hint).ok();
+            }
         }
 
         ExitCode::Failure
