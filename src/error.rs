@@ -1,3 +1,4 @@
+/// Represents errors that can occur while handling subcommands.
 #[derive(Debug)]
 pub struct Error {
     message: String,
@@ -22,28 +23,39 @@ impl std::error::Error for Error {
 }
 
 impl Error {
+    /// Creates an error indicating a subcommand failed to execute.
     pub fn new(
-        message: String,
+        message: impl Into<String>,
         source: Option<Box<dyn std::error::Error + Send + Sync + 'static>>,
     ) -> Self {
         Self {
-            message,
+            message: message.into(),
             hint: None,
-            source: if let Some(source) = source {
-                Some(source)
-            } else {
-                None
-            },
+            source,
         }
     }
 
-    pub fn with_hint(self, hint: String) -> Self {
-        Self {
-            hint: Some(hint),
-            ..self
-        }
+    /// Provide a message for the user that may help resolve the error, or erase a previous hint.
+    pub fn with_hint(self, hint: Option<String>) -> Self {
+        Self { hint, ..self }
     }
 
+    /// Get the optional hint associated with the error.
+    ///
+    /// This method returns a user-friendly message intended to assist in resolving the error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let error = axiom::Error::new("configuration file not found".to_owned(), None)
+    ///     .with_hint("try running the `init` command first");
+    ///
+    /// if let Some(hint) = error.hint() {
+    ///     eprintln!("Hint: {}", hint);
+    /// }
+    /// # }
+    /// ```
     pub fn hint(&self) -> Option<&str> {
         self.hint.as_ref().map(|hint| hint.as_str())
     }
