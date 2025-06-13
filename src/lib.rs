@@ -5,7 +5,6 @@ mod args;
 mod commands;
 mod config;
 mod error;
-mod hint;
 
 use clap::Parser;
 pub use error::Error;
