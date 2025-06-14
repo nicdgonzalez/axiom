@@ -57,6 +57,6 @@ impl Error {
     /// # }
     /// ```
     pub fn hint(&self) -> Option<&str> {
-        self.hint.as_ref().map(|hint| hint.as_str())
+        self.hint.as_deref()
     }
 }

@@ -21,6 +21,7 @@ pub struct Properties {
 }
 
 impl Properties {
+    #[allow(unused)]
     pub fn to_server_properties(&self) -> String {
         fn serialize_item(key: &str, value: &toml::Value, prefix: Option<String>) -> String {
             let prefix = prefix.unwrap_or_default();
@@ -89,6 +90,7 @@ impl std::error::Error for ConfigError {
 
 impl ConfigError {
     /// Creates an error indicating the configuration file was not found.
+    #[allow(unused)]
     pub fn not_found<P, E>(directory: P, source: E) -> Self
     where
         P: AsRef<std::path::Path>,
@@ -123,6 +125,7 @@ impl Config {
     const FILENAME: &'static str = "Axiom.toml";
 
     /// Read and parse the configuration file from the given path.
+    #[allow(unused)]
     pub fn from_path<P>(path: P) -> Result<Self, ConfigError>
     where
         P: AsRef<std::path::Path>,

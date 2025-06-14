@@ -8,7 +8,6 @@ edition = "2024"
 [workspace.dependencies]
 paper = { path = "crates/paper" }
 varint = { path = "crates/varint" }
-server_properties = { path = "crates/server_properties" }
 
 [package]
 name = "axiom"
@@ -24,7 +23,6 @@ paper.workspace = true
 reqwest = { version = "0.12.19", features = ["blocking"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
-server_properties.workspace = true
 symlink = "0.1.0"
 toml = "0.8.23"
 toml_edit = "0.22.27"
