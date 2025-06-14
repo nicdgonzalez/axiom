@@ -1,4 +1,9 @@
-//! Encode and decode Minecraft's VarInt.
+//! Encode and decode Minecraft's Variable-length Integer encoding.
+//!
+//! # Examples
+//!
+//! ```no_run
+//! ```
 
 /// A mask that represent the value of the byte.
 const SEGMENT_BITS: u8 = 0x7F;

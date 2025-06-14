@@ -3,6 +3,8 @@ use std::io::Write;
 use anyhow::Context;
 use colored::Colorize;
 
+use crate::commands::Run;
+
 #[derive(Debug, clap::Args)]
 pub struct Update {
     /// The version of Minecraft to use.
@@ -24,7 +26,7 @@ pub struct Update {
     cwd: crate::args::BaseDirectory,
 }
 
-impl crate::commands::Run for Update {
+impl Run for Update {
     fn run(&self) -> Result<(), anyhow::Error> {
         let versions = paper::versions().with_context(|| "failed to get valid versions")?;
 
@@ -36,12 +38,12 @@ impl crate::commands::Run for Update {
             None => versions.last().with_context(|| "no versions available")?,
         };
 
-        // The `eprintln` macro will panic if writing to stderr fails.
+        // The `eprintln` macro will panic if writing to stderr fails; using this lock we can
+        // prioritize handling the subcommand and make logging our progress secondary.
         let mut stderr = std::io::stderr().lock();
         #[rustfmt::skip]
         writeln!(stderr, "Updating to Minecraft version {}", version.as_str().yellow()).ok();
 
-        // Get the latest build for the current version.
         writeln!(stderr, "Getting latest build for selected version...").ok();
         let build = version
             .builds()
@@ -57,7 +59,7 @@ impl crate::commands::Run for Update {
 
             let hint = get_latest_stable_version(&versions, version)
                 .map(|v| format!("The latest stable version is '{}'", v.as_str()))
-                .ok(); // Ignore the error if we are unable to get the latest stable version.
+                .ok(); // Returns `None` if we failed to get the latest stable version.
 
             return Err(crate::Error::new(message, None).with_hint(hint).into());
         }
@@ -124,12 +126,9 @@ fn update_server_jar(
     }
 
     let server_directory = base_directory.as_ref().join("server");
+    std::fs::create_dir_all(&server_directory)
+        .with_context(|| "failed to create 'server' directory")?;
 
-    // TODO: I don't think this should be an assertion since the user can call this subcommand
-    // themselves. Perhaps suggest they run the build command first? should I just create the
-    // directory for them? Why are you updating the server if you don't have a server yet? Is this
-    // just for the convenience of not having to open the configuration file? Is that okay?
-    debug_assert!(server_directory.exists());
     let server_jar = server_directory.join("server.jar");
 
     if let Err(err) = std::fs::remove_file(&server_jar) {

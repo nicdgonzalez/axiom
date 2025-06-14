@@ -1,4 +1,4 @@
-/// Base directory flags to `#[clap(flatten)]` into your CLI.
+// Base directory flags to `#[clap(flatten)]` into your CLI.
 #[derive(Debug, clap::Args)]
 pub struct BaseDirectory {
     /// Change the current working directory.

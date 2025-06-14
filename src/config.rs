@@ -14,10 +14,39 @@ pub struct Server {
 }
 
 #[allow(unused)]
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct Properties {
     #[serde(flatten)]
     items: BTreeMap<String, toml::Value>,
+}
+
+impl Properties {
+    pub fn to_server_properties(&self) -> String {
+        fn serialize_item(key: &str, value: &toml::Value, prefix: Option<String>) -> String {
+            let prefix = prefix.unwrap_or_default();
+
+            match value {
+                toml::Value::String(v) => format!("{}{}={}", prefix, key, v.replace(":", "\\:")),
+                toml::Value::Integer(v) => format!("{}{}={}", prefix, key, v),
+                toml::Value::Float(v) => format!("{}{}={}", prefix, key, v),
+                toml::Value::Boolean(v) => format!("{}{}={}", prefix, key, v),
+                toml::Value::Datetime(_) => unimplemented!("datetime not supported"),
+                toml::Value::Array(_) => unimplemented!("array not supported"),
+                toml::Value::Table(v) => v
+                    .iter()
+                    .map(|(k, v)| serialize_item(k, v, Some(format!("{}{}.", prefix, key))))
+                    .collect::<Vec<String>>()
+                    .join("\n"),
+            }
+        }
+
+        toml::Table::try_from(self)
+            .expect("expected properties to be a valid TOML table")
+            .iter()
+            .map(|(k, v)| serialize_item(k, v, None))
+            .collect::<Vec<String>>()
+            .join("\n")
+    }
 }
 
 #[derive(Debug)]
@@ -60,10 +89,11 @@ impl std::error::Error for ConfigError {
 
 impl ConfigError {
     /// Creates an error indicating the configuration file was not found.
-    pub fn not_found(
-        directory: impl AsRef<std::path::Path>,
-        source: impl Into<Box<dyn std::error::Error + Send + Sync + 'static>>,
-    ) -> Self {
+    pub fn not_found<P, E>(directory: P, source: E) -> Self
+    where
+        P: AsRef<std::path::Path>,
+        E: Into<Box<dyn std::error::Error + Send + Sync + 'static>>,
+    {
         Self::NotFound {
             directory: directory.as_ref().to_path_buf(),
             source: source.into(),
@@ -71,9 +101,10 @@ impl ConfigError {
     }
 
     /// Creates an error indicating a failure to parse the configuration file.
-    pub fn parse_failed(
-        source: impl Into<Box<dyn std::error::Error + Send + Sync + 'static>>,
-    ) -> Self {
+    pub fn parse_failed<E>(source: E) -> Self
+    where
+        E: Into<Box<dyn std::error::Error + Send + Sync + 'static>>,
+    {
         Self::ParseFailed {
             source: source.into(),
         }
@@ -91,13 +122,11 @@ impl std::str::FromStr for Config {
 impl Config {
     const FILENAME: &'static str = "Axiom.toml";
 
-    /// Read and parse the configuration file from the given directory.
-    #[allow(unused)]
-    pub fn from_directory<P>(directory: P) -> Result<Self, ConfigError>
+    /// Read and parse the configuration file from the given path.
+    pub fn from_path<P>(path: P) -> Result<Self, ConfigError>
     where
         P: AsRef<std::path::Path>,
     {
-        let path = Self::path(directory);
         let contents = std::fs::read_to_string(&path).map_err(|err| match err.kind() {
             std::io::ErrorKind::NotFound => ConfigError::not_found(&path, err),
             _ => ConfigError::Io(err),
@@ -114,5 +143,30 @@ impl Config {
         P: AsRef<std::path::Path>,
     {
         directory.as_ref().join(Self::FILENAME)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_serialize() {
+        let input = r#"
+            [server]
+            version = "1.21.5"
+
+            [properties]
+            pvp = true
+            level-name = "world"
+            rcon.password = ""
+            rcon.port = 25575
+        "#;
+
+        let config = input.parse::<Config>().unwrap();
+        // NOTE: BTreeMap sorts the keys alphabetically.
+        let expected = "level-name=world\npvp=true\nrcon.password=\nrcon.port=25575";
+
+        assert_eq!(&config.properties.unwrap().to_server_properties(), expected);
     }
 }

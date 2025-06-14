@@ -97,6 +97,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "server_properties",
  "symlink",
  "toml",
  "toml_edit",
@@ -1161,6 +1162,13 @@ dependencies = [
  "form_urlencoded",
  "itoa",
  "ryu",
+ "serde",
+]
+
+[[package]]
+name = "server_properties"
+version = "0.1.0"
+dependencies = [
  "serde",
 ]
 

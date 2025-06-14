@@ -47,9 +47,9 @@ impl Error {
     /// # Examples
     ///
     /// ```
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # fn main() {
     /// let error = axiom::Error::new("configuration file not found".to_owned(), None)
-    ///     .with_hint("try running the `init` command first");
+    ///     .with_hint(Some("try running the `init` command first".to_owned()));
     ///
     /// if let Some(hint) = error.hint() {
     ///     eprintln!("Hint: {}", hint);

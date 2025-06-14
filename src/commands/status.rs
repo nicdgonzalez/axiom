@@ -6,8 +6,10 @@ use colored::Colorize;
 
 use varint::{self, ReadExt};
 
-// TODO: Default `hostname` and `port` to the `server-ip` and `server-port` values of a
-// `server.properties` file if inside of a server directory.
+use crate::commands::Run;
+
+// TODO: Default `hostname` and `port` to the `server-ip` and `server-port` values of the
+// `properties` table in Axiom.toml.
 
 #[derive(Debug, clap::Args)]
 pub struct Status {
@@ -24,7 +26,7 @@ pub struct Status {
     timeout: u64,
 }
 
-impl crate::commands::Run for Status {
+impl Run for Status {
     fn run(&self) -> Result<(), anyhow::Error> {
         let server_address = format!("{}:{}", self.hostname, self.port);
         let timeout = std::time::Duration::from_secs(self.timeout);
