@@ -216,21 +216,23 @@ fn create_status_request_packet() -> Vec<u8> {
 fn get_status_response(socket: &mut std::net::TcpStream) -> anyhow::Result<StatusResponse> {
     tracing::trace!("Getting Status Response from server...");
 
-    _ = socket.read_varint_i32().map_err(|err| match &err {
-        varint::ReadVarIntError::ReadFailed { source } => {
-            if let Some(io_error) = source.downcast_ref::<std::io::Error>() {
-                match io_error.kind() {
-                    std::io::ErrorKind::UnexpectedEof => {
-                        anyhow!("no response from server. are you sure this is a Minecraft server?")
-                    }
-                    _ => err.into(),
-                }
-            } else {
-                anyhow!("failed to get packet length")
+    if let Err(err) = socket.read_varint_i32() {
+        if let varint::ReadVarIntError::ReadFailed { source } = &err {
+            // Indicates there *is* a server listening to requests at this address,
+            // but it probably disregarded our request because it's not a Minecraft server.
+            if source
+                .downcast_ref::<std::io::Error>()
+                .filter(|e| e.kind() == std::io::ErrorKind::UnexpectedEof)
+                .is_some()
+            {
+                return Err(anyhow::anyhow!(
+                    "no response from server. are you sure this is a Minecraft server?"
+                ));
             }
         }
-        _ => err.into(),
-    })?;
+
+        return Err(err.into());
+    }
 
     let packet_id = socket
         .read_varint_i32()
