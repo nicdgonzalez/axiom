@@ -13,10 +13,10 @@ use crate::config::Config;
 pub struct Status {
     /// The maximum number of seconds to wait before failing to connect to the server.
     #[arg(long, default_value = "10")]
-    pub(super) timeout: u64,
+    pub(crate) timeout: u64,
 
     #[clap(flatten)]
-    pub(super) cwd: crate::args::BaseDirectory,
+    pub(crate) cwd: crate::args::BaseDirectory,
 }
 
 impl Run for Status {

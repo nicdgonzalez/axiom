@@ -1,3 +1,4 @@
+mod build;
 mod status;
 mod status_ext;
 mod update;
@@ -8,6 +9,8 @@ pub trait Run {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
+    /// Apply any changes to the configuration file onto the server.
+    Build(build::Build),
     /// Ping a Minecraft server to get basic information about it.
     Status(status::Status),
     /// Like `status`, but allows you to ping Minecraft servers using only a hostname.
@@ -18,6 +21,7 @@ pub enum Subcommand {
 
 pub fn handle_subcommand(subcommand: &Subcommand) -> anyhow::Result<()> {
     match subcommand {
+        Subcommand::Build(handler) => handler.run(),
         Subcommand::Status(handler) => handler.run(),
         Subcommand::StatusExt(handler) => handler.run(),
         Subcommand::Update(handler) => handler.run(),

@@ -8,22 +8,22 @@ use crate::commands::Run;
 #[derive(Debug, clap::Args)]
 pub struct Update {
     /// The version of Minecraft to use.
-    version: Option<String>,
+    pub(crate) version: Option<String>,
 
     /// Upgrade to the latest version, even if the latest version is not yet stable.
     #[arg(long, short = 'e')]
-    allow_experimental: bool,
+    pub(crate) allow_experimental: bool,
 
     /// Downgrade to an older version of Minecraft.
     #[arg(long, short = 'd')]
-    allow_downgrade: bool,
+    pub(crate) allow_downgrade: bool,
 
     /// Seconds to wait before failing to download the new server JAR.
     #[arg(long, short = 't', default_value = "120")]
-    timeout: u64,
+    pub(crate) timeout: u64,
 
     #[clap(flatten)]
-    cwd: crate::args::BaseDirectory,
+    pub(crate) cwd: crate::args::BaseDirectory,
 }
 
 impl Run for Update {
@@ -222,15 +222,16 @@ fn update_server_jar(
     Ok(())
 }
 
+/// Update the value of `version` in the server's configuration file.
 fn update_version_in_config<P>(
     config_file: P,
-    version: &paper::Version,
+    new_version: &paper::Version,
 ) -> Result<(), anyhow::Error>
 where
     P: AsRef<std::path::Path>,
 {
     let mut doc = std::fs::read_to_string(&config_file)?.parse::<toml_edit::DocumentMut>()?;
-    doc["server"]["version"] = toml_edit::value(version.as_str());
+    doc["server"]["version"] = toml_edit::value(new_version.as_str());
     std::fs::write(&config_file, doc.to_string())
         .with_context(|| "failed to update the version in the configuration file")?;
 

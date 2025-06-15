@@ -10,7 +10,7 @@ pub struct Config {
 #[allow(unused)]
 #[derive(Debug, serde::Deserialize)]
 pub struct Server {
-    version: String,
+    pub version: String,
 }
 
 #[allow(unused)]

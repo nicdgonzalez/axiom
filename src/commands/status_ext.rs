@@ -9,15 +9,15 @@ use crate::commands::status::Status;
 pub struct StatusExt {
     /// The IP address or hostname of the target Minecraft server.
     #[arg(long, short = 'H')]
-    hostname: String,
+    pub(crate) hostname: String,
 
     /// The port number on which the Minecraft server is listening for connections.
     #[arg(long, short = 'p')]
-    port: Option<u16>,
+    pub(crate) port: Option<u16>,
 
     /// The maximum number of seconds to wait before failing to connect to the server.
     #[arg(long, default_value = "10")]
-    timeout: u64,
+    pub(crate) timeout: u64,
 }
 
 impl Run for StatusExt {

@@ -1,5 +1,5 @@
 // Base directory flags to `#[clap(flatten)]` into your CLI.
-#[derive(Debug, clap::Args)]
+#[derive(Debug, Clone, clap::Args)]
 pub struct BaseDirectory {
     /// Change the current working directory.
     #[arg(long, short = 'C', global = true)]
