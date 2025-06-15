@@ -43,9 +43,9 @@ impl Run for Update {
         // continue processing the request, even if writing to stderr fails.
         let mut stderr = std::io::stderr().lock();
         #[rustfmt::skip]
-        writeln!(stderr, "Updating to Minecraft version {}", version.as_str().yellow()).ok();
+        writeln!(stderr, "Selected Minecraft version: {}", version.as_str().yellow()).ok();
 
-        writeln!(stderr, "Getting latest build for selected version...").ok();
+        writeln!(stderr, "Checking latest build...").ok();
         let build = version
             .builds()
             .with_context(|| "failed to get all builds")?
@@ -76,15 +76,44 @@ impl Run for Update {
             }
         }
 
-        writeln!(stderr, "Downloading server.jar file...").ok();
-        update_server_jar(&directory, &build, self.timeout)?;
+        let jars = directory.join("jars");
+        let paper_jar = jars.join(build.download_name());
+
+        if paper_jar.exists() {
+            writeln!(stderr, "Already using the latest build").ok();
+        } else {
+            writeln!(stderr, "Downloading the latest build...").ok();
+
+            let data = build
+                .download(std::time::Duration::from_secs(self.timeout))
+                .with_context(|| "failed to download new server")?;
+
+            std::fs::create_dir_all(&jars).with_context(|| "failed to create 'jars' directory")?;
+            std::fs::write(&paper_jar, &data).with_context(|| "failed to save new server")?;
+        }
+
+        let server = directory.join("server");
+        std::fs::create_dir_all(&server).with_context(|| "failed to create 'server' directory")?;
+
+        let server_jar = server.join("server.jar");
+
+        if let Err(err) = std::fs::remove_file(&server_jar) {
+            match err.kind() {
+                std::io::ErrorKind::NotFound => (), // No file to remove.
+                std::io::ErrorKind::IsADirectory => std::fs::remove_dir_all(&server_jar)?,
+                _ => return Err(err).with_context(|| "failed to remove existing server"),
+            }
+        }
+
+        symlink::symlink_file(&paper_jar, &server_jar)
+            .with_context(|| "failed to link new server.jar")?;
 
         // Update the configuration file to reflect the new version.
         update_version_in_config(crate::config::Config::path(directory), version)
             .with_context(|| "failed to update version in Axiom.toml")?;
 
         #[rustfmt::skip]
-        writeln!(stderr, "Server updated to Minecraft version {}", version.as_str().yellow()).ok();
+        writeln!(stderr, "Server is on Minecraft version {}", version.as_str().yellow()).ok();
 
         Ok(())
     }
@@ -180,44 +209,6 @@ fn ensure_no_downgrade(
         ));
         return Err(crate::Error::new(message, None).with_hint(hint).into());
     }
-
-    Ok(())
-}
-
-/// Download the new server JAR and symlink it to `./server/server.jar`.
-fn update_server_jar(
-    base_directory: impl AsRef<std::path::Path>,
-    build: &paper::Build,
-    timeout: u64,
-) -> Result<(), anyhow::Error> {
-    let jars = base_directory.as_ref().join("jars");
-    let paper_jar = jars.join(build.download_name());
-
-    if !paper_jar.exists() {
-        let data = build
-            .download(std::time::Duration::from_secs(timeout))
-            .with_context(|| "failed to download new server")?;
-
-        std::fs::create_dir_all(&jars).with_context(|| "failed to create 'jars' directory")?;
-        std::fs::write(&paper_jar, &data).with_context(|| "failed to save new server")?;
-    }
-
-    let server_directory = base_directory.as_ref().join("server");
-    std::fs::create_dir_all(&server_directory)
-        .with_context(|| "failed to create 'server' directory")?;
-
-    let server_jar = server_directory.join("server.jar");
-
-    if let Err(err) = std::fs::remove_file(&server_jar) {
-        match err.kind() {
-            std::io::ErrorKind::NotFound => (), // No file to remove.
-            std::io::ErrorKind::IsADirectory => std::fs::remove_dir_all(&server_jar)?,
-            _ => return Err(err).with_context(|| "failed to remove existing server"),
-        }
-    }
-
-    symlink::symlink_file(&paper_jar, &server_jar)
-        .with_context(|| "failed to link new server.jar")?;
 
     Ok(())
 }

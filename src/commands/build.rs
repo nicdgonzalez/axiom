@@ -56,6 +56,7 @@ impl Run for Build {
                         .to_str()
                         .expect("expected path to be valid unicode"),
                 ])
+                .current_dir(&server)
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
                 .status()
@@ -93,7 +94,7 @@ impl Run for Build {
         // identify and download plugins. For now, I can maybe add a path to an executable build
         // script that can run every time this command is ran.
 
-        writeln!(stderr, "Server is ready!").ok();
+        writeln!(stderr, "Ready!").ok();
         Ok(())
     }
 }

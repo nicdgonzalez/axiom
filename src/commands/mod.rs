@@ -3,6 +3,8 @@ mod status;
 mod status_ext;
 mod update;
 
+use std::io::Write;
+
 pub trait Run {
     fn run(&self) -> Result<(), anyhow::Error>;
 }
@@ -20,10 +22,18 @@ pub enum Subcommand {
 }
 
 pub fn handle_subcommand(subcommand: &Subcommand) -> anyhow::Result<()> {
-    match subcommand {
+    let start = std::time::Instant::now();
+
+    let result = match subcommand {
         Subcommand::Build(handler) => handler.run(),
         Subcommand::Status(handler) => handler.run(),
         Subcommand::StatusExt(handler) => handler.run(),
         Subcommand::Update(handler) => handler.run(),
-    }
+    };
+
+    let elapsed = start.elapsed();
+    let mut stderr = std::io::stderr().lock();
+    writeln!(stderr, "Command ran in {:#.5?}", elapsed).ok();
+
+    result
 }
