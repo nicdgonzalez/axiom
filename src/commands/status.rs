@@ -7,28 +7,47 @@ use colored::Colorize;
 use varint::{self, ReadExt};
 
 use crate::commands::Run;
-
-// TODO: Default `hostname` and `port` to the `server-ip` and `server-port` values of the
-// `properties` table in Axiom.toml.
+use crate::config::Config;
 
 #[derive(Debug, clap::Args)]
 pub struct Status {
-    /// The IP address or hostname of the target Minecraft server.
-    #[arg(long, short = 'H', default_value = "127.0.0.1")]
-    hostname: String,
-
-    /// The port number on which the Minecraft server is listening for connections.
-    #[arg(long, short = 'p', default_value = "25565")]
-    port: u16,
-
     /// The maximum number of seconds to wait before failing to connect to the server.
     #[arg(long, default_value = "10")]
-    timeout: u64,
+    pub(super) timeout: u64,
+
+    #[clap(flatten)]
+    pub(super) cwd: crate::args::BaseDirectory,
 }
 
 impl Run for Status {
     fn run(&self) -> Result<(), anyhow::Error> {
-        let server_address = format!("{}:{}", self.hostname, self.port);
+        let config = Config::from_path(Config::path(self.cwd.to_path_buf()))
+            .with_context(|| "failed to load configuration")?;
+
+        let hostname = config
+            .properties
+            .as_ref()
+            .and_then(|properties| {
+                properties
+                    .items
+                    .get("server-ip")
+                    .and_then(|value| value.as_str())
+            })
+            .unwrap_or_else(|| "127.0.0.1");
+
+        let port = config
+            .properties
+            .as_ref()
+            .and_then(|properties| {
+                properties
+                    .items
+                    .get("server-port")
+                    .and_then(|value| value.as_integer())
+            })
+            .map(|port| u16::try_from(port).with_context(|| "invalid port number"))
+            .unwrap_or_else(|| Ok(25565))?;
+
+        let server_address = format!("{}:{}", hostname, port);
         let timeout = std::time::Duration::from_secs(self.timeout);
 
         tracing::info!("Connecting to server: {server_address}");
@@ -38,7 +57,7 @@ impl Run for Status {
             .find_map(|addr| std::net::TcpStream::connect_timeout(&addr, timeout).ok())
             .with_context(|| "failed to connect to Minecraft server")?;
 
-        send_handshake_packet(&mut socket, &self.hostname, self.port)?;
+        send_handshake_packet(&mut socket, &hostname, port)?;
         send_status_request_packet(&mut socket)?;
         let response =
             get_status_response(&mut socket).with_context(|| "failed to get status response")?;

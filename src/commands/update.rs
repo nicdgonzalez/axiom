@@ -170,7 +170,10 @@ fn ensure_no_downgrade(
         .expect("expected `after` to follow semantic versioning");
 
     if let std::cmp::Ordering::Greater = before.cmp(&after) {
-        let message = "the selected version is older than the current version.".to_owned();
+        let message = format!(
+            "the selected version ({}) is older than the current version ({})",
+            after, before
+        );
         let hint = Some(format!(
             "try again with {} or use a different version",
             "--allow-downgrade".yellow()

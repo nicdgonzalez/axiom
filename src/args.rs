@@ -7,6 +7,12 @@ pub struct BaseDirectory {
 }
 
 impl BaseDirectory {
+    pub fn new(path: std::path::PathBuf) -> Self {
+        Self {
+            directory: Some(path),
+        }
+    }
+
     pub fn to_path_buf(&self) -> std::path::PathBuf {
         match self.directory {
             Some(ref path) => path.to_path_buf(),

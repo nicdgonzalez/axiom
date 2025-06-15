@@ -1,4 +1,4 @@
-/// Represents errors that can occur while handling subcommands.
+/// Represents an error that occurred while handling subcommands.
 #[derive(Debug)]
 pub struct Error {
     message: String,

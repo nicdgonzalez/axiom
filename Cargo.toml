@@ -25,8 +25,10 @@ semver = "1.0.26"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 symlink = "0.1.0"
+tempdir = "0.3.7"
 toml = "0.8.23"
 toml_edit = "0.22.27"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
+trust-dns-resolver = "0.23.2"
 varint.workspace = true

@@ -17,7 +17,7 @@ pub struct Server {
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct Properties {
     #[serde(flatten)]
-    items: BTreeMap<String, toml::Value>,
+    pub items: BTreeMap<String, toml::Value>,
 }
 
 impl Properties {
