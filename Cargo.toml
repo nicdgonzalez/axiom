@@ -21,6 +21,7 @@ colored = "3.0.0"
 dirs = "6.0.0"
 paper.workspace = true
 reqwest = { version = "0.12.19", features = ["blocking"] }
+semver = "1.0.26"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 symlink = "0.1.0"
