@@ -1,19 +1,26 @@
 use std::collections::BTreeMap;
 
-#[allow(unused)]
 #[derive(Debug, serde::Deserialize)]
 pub struct Config {
     pub server: Server,
+    pub launcher: Launcher,
     pub properties: Option<Properties>,
 }
 
-#[allow(unused)]
 #[derive(Debug, serde::Deserialize)]
 pub struct Server {
     pub version: String,
+    /// Path to an executable script that can will be ran after a build.
+    ///
+    /// This can be used to install plugins, commit changes to version control, etc.
+    pub post_build: Option<std::path::PathBuf>,
 }
 
-#[allow(unused)]
+#[derive(Debug, serde::Deserialize)]
+pub struct Launcher {
+    pub args: Vec<String>,
+}
+
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct Properties {
     #[serde(flatten)]

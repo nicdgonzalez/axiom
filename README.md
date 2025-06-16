@@ -1,6 +1,6 @@
 # Axiom
 
-Notes for implementing a `start` command.
+Notes for implementing a **start** command.
 
 ## Notes
 
@@ -10,12 +10,11 @@ A message indicating the server started successfully:
 [16:14:15 INFO]: Done (14.773s)! For help, type "help"
 ```
 
-<detail>
+<details>
     <summary>
         Full console output
     </summary>
 
-````
 ```
 [16:14:01 INFO]: [bootstrap] Loading Paper 1.21.5-113-main@ba7fb23 (2025-06-10T23:34:22Z) for Minecraft 1.21.5
 [16:14:02 INFO]: [PluginInitializerManager] Initializing plugins...
@@ -70,9 +69,8 @@ c.io/paper/profiling
 [16:15:15 INFO]: Server empty for 60 seconds, pausing
 >
 ```
-````
 
-</detail>
+</details>
 
 A message indicating the server did not start successfully:
 
@@ -80,12 +78,11 @@ A message indicating the server did not start successfully:
 [16:22:13 INFO]: Stopping server
 ```
 
-<detail>
+<details>
     <summary>
         Full console output
     </summary>
 
-````
 ```
 [16:22:05 INFO]: [bootstrap] Running Java 21 (OpenJDK 64-Bit Server VM 21.0.7+6; Red Hat, Inc. (Red_Hat-21.0.7.0.6-1)) on Linux 6.14.9-300.fc42.x86_64 (amd64)
 [16:22:05 INFO]: [bootstrap] Loading Paper 1.21.5-113-main@ba7fb23 (2025-06-10T23:34:22Z) for Minecraft 1.21.5
@@ -129,6 +126,5 @@ Caused by: io.netty.channel.unix.Errors$NativeIoException: bind(..) failed: Addr
 > 2025-06-15T20:22:13.342024027Z Log4j2-AsyncAppenderEventDispatcher-1-Async WARN Advanced terminal features are not available in this environment
 [16:22:13 INFO]: [MoonriseCommon] Awaiting termination of I/O pool for up to 60s...
 ```
-````
 
-</detail>
+</details>

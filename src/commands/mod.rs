@@ -1,9 +1,8 @@
 mod build;
+mod start;
 mod status;
 mod status_ext;
 mod update;
-
-use std::io::Write;
 
 pub trait Run {
     fn run(&self) -> Result<(), anyhow::Error>;
@@ -13,6 +12,8 @@ pub trait Run {
 pub enum Subcommand {
     /// Apply any changes to the configuration file onto the server.
     Build(build::Build),
+    /// Run the server.
+    Start(start::Start),
     /// Ping a Minecraft server to get basic information about it.
     Status(status::Status),
     /// Like `status`, but allows you to ping Minecraft servers using only a hostname.
@@ -22,18 +23,13 @@ pub enum Subcommand {
 }
 
 pub fn handle_subcommand(subcommand: &Subcommand) -> anyhow::Result<()> {
-    let start = std::time::Instant::now();
-
     let result = match subcommand {
         Subcommand::Build(handler) => handler.run(),
+        Subcommand::Start(handler) => handler.run(),
         Subcommand::Status(handler) => handler.run(),
         Subcommand::StatusExt(handler) => handler.run(),
         Subcommand::Update(handler) => handler.run(),
     };
-
-    let elapsed = start.elapsed();
-    let mut stderr = std::io::stderr().lock();
-    writeln!(stderr, "Command ran in {:#.5?}", elapsed).ok();
 
     result
 }

@@ -113,7 +113,7 @@ impl Run for Update {
             .with_context(|| "failed to update version in Axiom.toml")?;
 
         #[rustfmt::skip]
-        writeln!(stderr, "Server is on Minecraft version {}", version.as_str().yellow()).ok();
+        writeln!(stderr, "Server is running Minecraft version {}", version.as_str().yellow()).ok();
 
         Ok(())
     }

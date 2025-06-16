@@ -1,3 +1,5 @@
+use std::os::unix::fs::PermissionsExt;
+
 use anyhow::Context;
 use colored::Colorize;
 use std::io::Write;
@@ -22,13 +24,11 @@ impl Run for Build {
         let config = Config::from_path(Config::path(&directory))
             .with_context(|| "failed to load configuration")?;
 
-        // Create the server directory, if not already exists.
         let server = directory.join("server");
         std::fs::create_dir_all(&server).with_context(|| "failed to create 'server' directory")?;
 
         let mut stderr = std::io::stderr().lock();
 
-        // Run the update command to download the `server.jar` file.
         if let Err(err) = Update::run(&Update {
             version: Some(config.server.version),
             allow_experimental: true,
@@ -43,7 +43,6 @@ impl Run for Build {
 
         let server_properties = server.join("server.properties");
 
-        // Run the server once to generate the initial files.
         if !server_properties.exists() {
             writeln!(stderr, "Generating server files...").ok();
             let server_jar = server.join("server.jar");
@@ -55,6 +54,7 @@ impl Run for Build {
                     server_jar
                         .to_str()
                         .expect("expected path to be valid unicode"),
+                    "--initSettings",
                 ])
                 .current_dir(&server)
                 .stdout(std::process::Stdio::null())
@@ -90,16 +90,42 @@ impl Run for Build {
                 .with_context(|| "failed to write to eula.txt")?;
         }
 
-        // TODO: Plugins would be added/removed here, but first I would need to figure out a way to
-        // identify and download plugins. For now, I can maybe add a path to an executable build
-        // script that can run every time this command is ran.
+        writeln!(stderr, "Generating start.sh script...").ok();
+        let start_sh = server.join("start.sh");
+        let contents = format!("#!/usr/bin/bash\n\n{}", config.launcher.args.join(" "));
+        std::fs::write(&start_sh, contents).with_context(|| "failed to write to start.sh")?;
+
+        let metadata = start_sh
+            .metadata()
+            .with_context(|| "failed to get start.sh metadata")?;
+        let permissions = metadata.permissions();
+        let mode = permissions.mode() | 0o070; // Give the user permission to execute the file.
+        std::fs::set_permissions(&start_sh, std::fs::Permissions::from_mode(mode))
+            .with_context(|| "failed to make start.sh executable")?;
+
+        if let Some(script) = config.server.post_build {
+            writeln!(stderr, "Running post-build script...").ok();
+            match std::process::Command::new(script)
+                .current_dir(directory)
+                .status()
+                .with_context(|| "failed to execute custom post-build script")
+                .and_then(|status| {
+                    status
+                        .code()
+                        .with_context(|| "post-build script terminated due to signal")
+                }) {
+                #[rustfmt::skip]
+                Ok(code) => writeln!(stderr, "Post-build script finished with exit code: {}", code).ok(),
+                Err(err) => writeln!(stderr, "Failed to execute post-build script: {}", err).ok(),
+            };
+        }
 
         writeln!(stderr, "Ready!").ok();
         Ok(())
     }
 }
 
-/// Prompts the user using stdin to interactively accept the Minecraft EULA.
+/// Prompts the user to interactively accept the Minecraft EULA.
 fn prompt_user_to_accept_eula() -> bool {
     println!(
         "{}: {}",
