@@ -16,7 +16,7 @@ pub enum Subcommand {
     Start(start::Start),
     /// Ping a Minecraft server to get basic information about it.
     Status(status::Status),
-    /// Like `status`, but allows you to ping Minecraft servers using only a hostname.
+    /// Similar to status, but allows you to ping Minecraft servers without a config file.
     StatusExt(status_ext::StatusExt),
     /// Change which version of Minecraft a server is using.
     Update(update::Update),

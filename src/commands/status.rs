@@ -14,14 +14,12 @@ pub struct Status {
     /// The maximum number of seconds to wait before failing to connect to the server.
     #[arg(long, default_value = "10")]
     pub(crate) timeout: u64,
-
-    #[clap(flatten)]
-    pub(crate) cwd: crate::args::BaseDirectory,
 }
 
 impl Run for Status {
     fn run(&self) -> Result<(), anyhow::Error> {
-        let config = Config::from_path(Config::path(self.cwd.to_path_buf()))
+        let directory = std::env::current_dir().expect("failed to get the current directory");
+        let config = Config::from_path(Config::path(directory))
             .with_context(|| "failed to load configuration")?;
 
         let hostname = config

@@ -40,9 +40,8 @@ pub fn run() -> anyhow::Result<ExitCode> {
     let level_filter = {
         use tracing::level_filters::LevelFilter;
         match args.verbose {
-            0 => LevelFilter::WARN,
-            1 => LevelFilter::INFO,
-            2 => LevelFilter::DEBUG,
+            0 => LevelFilter::INFO,
+            1 => LevelFilter::DEBUG,
             _ => LevelFilter::TRACE,
         }
     };

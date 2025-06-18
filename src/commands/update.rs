@@ -1,9 +1,10 @@
-use std::io::{BufRead, Write};
+use std::io::BufRead;
 
 use anyhow::Context;
 use colored::Colorize;
 
 use crate::commands::Run;
+use axiom_core::Manifest;
 
 #[derive(Debug, clap::Args)]
 pub struct Update {
@@ -21,9 +22,6 @@ pub struct Update {
     /// Seconds to wait before failing to download the new server JAR.
     #[arg(long, short = 't', default_value = "120")]
     pub(crate) timeout: u64,
-
-    #[clap(flatten)]
-    pub(crate) cwd: crate::args::BaseDirectory,
 }
 
 impl Run for Update {
@@ -38,21 +36,30 @@ impl Run for Update {
             None => versions.last().with_context(|| "no versions available")?,
         };
 
-        // The `eprintln` macro will panic if writing to stderr fails. Since printing our progress
-        // isn't important to successfully run this command, writing to this lock will allow us to
-        // continue processing the request, even if writing to stderr fails.
-        let mut stderr = std::io::stderr().lock();
-        #[rustfmt::skip]
-        writeln!(stderr, "Selected Minecraft version: {}", version.as_str().yellow()).ok();
+        tracing::info!(
+            "Checking latest build for Minecraft version {}...",
+            version.as_str()
+        );
 
-        writeln!(stderr, "Checking latest build...").ok();
         let build = version
             .builds()
             .with_context(|| "failed to get all builds")?
             .pop()
             .with_context(|| "no builds available")?;
 
-        if build.experimental() && !self.allow_experimental {
+        let directory = std::env::current_dir().expect("failed to get the current directory");
+        let manifest = Manifest::from_filepath(Manifest::filepath(&directory))?;
+
+        // You don't need to explicitly pass the experimental flag, if you are already on an
+        // experimental build.
+        let allow_experimental =
+            if build.experimental() && (manifest.server.version == build.version()) {
+                true
+            } else {
+                self.allow_experimental
+            };
+
+        if build.experimental() && !allow_experimental {
             let message = format!(
                 "selected version is experimental. use {} or set a stable version explicitly",
                 "--allow-experimental".yellow()
@@ -65,10 +72,8 @@ impl Run for Update {
             return Err(crate::Error::new(message, None).with_hint(hint).into());
         }
 
-        let directory = self.cwd.to_path_buf();
-
         if !self.allow_downgrade {
-            writeln!(stderr, "Checking which version is currently installed...").ok();
+            tracing::info!("Checking which version is currently installed...");
             if let Some(before) =
                 installed_version(&directory).with_context(|| "failed to get installed version")?
             {
@@ -80,9 +85,9 @@ impl Run for Update {
         let paper_jar = jars.join(build.download_name());
 
         if paper_jar.exists() {
-            writeln!(stderr, "Already using the latest build").ok();
+            tracing::info!("Already using the latest build");
         } else {
-            writeln!(stderr, "Downloading the latest build...").ok();
+            tracing::info!("Downloading the latest build...");
 
             let data = build
                 .download(std::time::Duration::from_secs(self.timeout))
@@ -109,11 +114,19 @@ impl Run for Update {
             .with_context(|| "failed to link new server.jar")?;
 
         // Update the configuration file to reflect the new version.
-        update_version_in_config(crate::config::Config::path(directory), version)
-            .with_context(|| "failed to update version in Axiom.toml")?;
+        let config_file = Manifest::filepath(directory);
 
-        #[rustfmt::skip]
-        writeln!(stderr, "Server is running Minecraft version {}", version.as_str().yellow()).ok();
+        let mut doc = std::fs::read_to_string(&config_file)?.parse::<toml_edit::DocumentMut>()?;
+        doc["server"]["version"] = toml_edit::value(version.as_str());
+        doc["server"]["build"] = toml_edit::value(i64::from(build.number()));
+        std::fs::write(&config_file, doc.to_string())
+            .with_context(|| "failed to update the version in the configuration file")?;
+
+        tracing::info!(
+            "Server is running Minecraft version {} (#{})",
+            version.as_str(),
+            build.number()
+        );
 
         Ok(())
     }

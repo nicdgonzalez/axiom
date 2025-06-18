@@ -1,35 +1,56 @@
+//! Defines the valid sections, keys and values for the `Axiom.toml` file of a server.
+
 use std::collections::BTreeMap;
 
-#[derive(Debug, serde::Deserialize)]
-pub struct Config {
+/// The `Axiom.toml` file for each package is called its *manifest*.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Manifest {
+    /// Defines metadata for setting up the Minecraft server.
     pub server: Server,
+    /// Configuration options for generating the `start.sh` file.
     pub launcher: Option<Launcher>,
+    /// Customize the `server.properties` file.
     pub properties: Option<Properties>,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Server {
+    /// The version of Minecraft the server is using.
     pub version: String,
-    /// Path to an executable script that can will be ran after a build.
-    ///
-    /// This can be used to install plugins, commit changes to version control, etc.
+    /// An incremental counter that indicates an official release for the PaperMC server JAR.
+    pub build: u32,
+    /// Path to an executable script that will be ran at the beginning of the build process.
+    pub pre_build: Option<std::path::PathBuf>,
+    /// Path to an executable script that will be ran at the end of the build process.
     pub post_build: Option<std::path::PathBuf>,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Launcher {
+    /// Controls the JVM's (Java Virtual Machine) heap memory allocation.
+    pub memory: Memory,
+    /// Arguments/flags to pass to the `java` command.
     pub java_args: Option<Vec<String>>,
+    /// Arguments/flags to pass to the Minecraft server (e.g., "--nogui").
     pub game_args: Option<Vec<String>>,
 }
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+// TODO: Validate memory string at deserialization time.
+//
+// The following Stack Overflow answer describes the valid suffixes:
+// https://stackoverflow.com/a/32858015
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Memory(String);
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Properties {
+    /// Represents the entries of the `server.properties` file.
     #[serde(flatten)]
     pub items: BTreeMap<String, toml::Value>,
 }
 
 impl Properties {
-    #[allow(unused)]
+    /// Serialize the TOML properties into the format expected by the `server.properties` file.
     pub fn to_server_properties(&self) -> String {
         fn serialize_item(key: &str, value: &toml::Value, prefix: Option<String>) -> String {
             let prefix = prefix.unwrap_or_default();
@@ -59,46 +80,50 @@ impl Properties {
 }
 
 #[derive(Debug)]
-pub enum ConfigError {
+pub enum ManifestError {
+    /// Indicates a failure to locate the manifest file.
     NotFound {
         directory: std::path::PathBuf,
         source: Box<dyn std::error::Error + Send + Sync + 'static>,
     },
+    /// Indicates the manifest file was found, but there was a problem reading its contents.
+    ReadFailed {
+        source: Box<dyn std::error::Error + Send + Sync + 'static>,
+    },
+    /// Indicates missing or invalid keys, values, sections, etc.
     ParseFailed {
         source: Box<dyn std::error::Error + Send + Sync + 'static>,
     },
-    Io(std::io::Error),
 }
 
-impl std::fmt::Display for ConfigError {
+impl std::fmt::Display for ManifestError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::NotFound {
                 directory,
                 source: _,
             } => write!(f, "could not find Axiom.toml in '{}'", directory.display()),
+            Self::ReadFailed { source: _ } => write!(f, "failed to read file"),
             Self::ParseFailed { source: _ } => write!(f, "failed to parse configuration file"),
-            Self::Io(inner) => write!(f, "{inner}"),
         }
     }
 }
 
-impl std::error::Error for ConfigError {
+impl std::error::Error for ManifestError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::NotFound {
                 directory: _,
                 source,
             } => Some(source.as_ref()),
+            Self::ReadFailed { source } => Some(source.as_ref()),
             Self::ParseFailed { source } => Some(source.as_ref()),
-            Self::Io(source) => Some(source),
         }
     }
 }
 
-impl ConfigError {
+impl ManifestError {
     /// Creates an error indicating the configuration file was not found.
-    #[allow(unused)]
     pub fn not_found<P, E>(directory: P, source: E) -> Self
     where
         P: AsRef<std::path::Path>,
@@ -106,6 +131,16 @@ impl ConfigError {
     {
         Self::NotFound {
             directory: directory.as_ref().to_path_buf(),
+            source: source.into(),
+        }
+    }
+
+    /// Creates an error indicating a failure to read the contents of the configuration file.
+    pub fn read_failed<E>(source: E) -> Self
+    where
+        E: Into<Box<dyn std::error::Error + Send + Sync + 'static>>,
+    {
+        Self::ReadFailed {
             source: source.into(),
         }
     }
@@ -121,26 +156,37 @@ impl ConfigError {
     }
 }
 
-impl std::str::FromStr for Config {
-    type Err = ConfigError;
+impl std::str::FromStr for Manifest {
+    type Err = ManifestError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        toml::from_str(s).map_err(ConfigError::parse_failed)
+        toml::from_str(s).map_err(ManifestError::parse_failed)
     }
 }
 
-impl Config {
+impl Manifest {
     const FILENAME: &'static str = "Axiom.toml";
 
-    /// Read and parse the configuration file from the given path.
-    #[allow(unused)]
-    pub fn from_path<P>(path: P) -> Result<Self, ConfigError>
+    /// Read and parse the configuration file from the given base directory.
+    ///
+    /// This is a convenience function for getting the manifest path using [`Self::filepath`] and
+    /// [`Self::from_filepath`].
+    pub fn from_directory<P>(directory: P) -> Result<Self, ManifestError>
     where
         P: AsRef<std::path::Path>,
     {
-        let contents = std::fs::read_to_string(&path).map_err(|err| match err.kind() {
-            std::io::ErrorKind::NotFound => ConfigError::not_found(&path, err),
-            _ => ConfigError::Io(err),
+        let filepath = Self::filepath(directory.as_ref());
+        Self::from_filepath(filepath)
+    }
+
+    /// Read and parse the configuration file from the given filepath.
+    pub fn from_filepath<P>(filepath: P) -> Result<Self, ManifestError>
+    where
+        P: AsRef<std::path::Path>,
+    {
+        let contents = std::fs::read_to_string(&filepath).map_err(|err| match err.kind() {
+            std::io::ErrorKind::NotFound => ManifestError::not_found(&filepath, err),
+            _ => ManifestError::read_failed(err),
         })?;
 
         contents.parse::<Self>()
@@ -149,7 +195,7 @@ impl Config {
     /// Creates the path to the configuration file from a given directory.
     ///
     /// This is a convenience function to join [`Self::FILENAME`] to the given directory.
-    pub fn path<P>(directory: P) -> std::path::PathBuf
+    pub fn filepath<P>(directory: P) -> std::path::PathBuf
     where
         P: AsRef<std::path::Path>,
     {
@@ -174,7 +220,7 @@ mod tests {
             rcon.port = 25575
         "#;
 
-        let config = input.parse::<Config>().unwrap();
+        let config = input.parse::<Manifest>().unwrap();
         // NOTE: BTreeMap sorts the keys alphabetically.
         let expected = "level-name=world\npvp=true\nrcon.password=\nrcon.port=25575";
 
