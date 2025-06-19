@@ -21,7 +21,7 @@ pub struct StatusExt {
 }
 
 impl Run for StatusExt {
-    fn run(&self) -> Result<(), anyhow::Error> {
+    fn run(&self, ctx: &crate::context::Context) -> Result<(), anyhow::Error> {
         let domain = format!("_minecraft._tcp.{}", self.hostname);
         let resolver = Resolver::new(ResolverConfig::default(), ResolverOpts::default()).unwrap();
 
@@ -53,8 +53,7 @@ server-port = {port}
 
         Status {
             timeout: self.timeout,
-            cwd: crate::args::BaseDirectory::new(temporary_directory.into_path()),
         }
-        .run()
+        .run(&ctx)
     }
 }

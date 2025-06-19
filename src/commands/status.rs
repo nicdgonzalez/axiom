@@ -2,12 +2,12 @@ use std::io::{Read, Write};
 use std::net::ToSocketAddrs;
 
 use anyhow::{Context, anyhow};
+use axiom_core::Manifest;
 use colored::Colorize;
 
 use varint::{self, ReadExt};
 
 use crate::commands::Run;
-use crate::config::Config;
 
 #[derive(Debug, clap::Args)]
 pub struct Status {
@@ -17,10 +17,9 @@ pub struct Status {
 }
 
 impl Run for Status {
-    fn run(&self) -> Result<(), anyhow::Error> {
-        let directory = std::env::current_dir().expect("failed to get the current directory");
-        let config = Config::from_path(Config::path(directory))
-            .with_context(|| "failed to load configuration")?;
+    fn run(&self, ctx: &crate::context::Context) -> Result<(), anyhow::Error> {
+        let config =
+            Manifest::from_directory(&ctx.cwd()).with_context(|| "failed to load manifest")?;
 
         let hostname = config
             .properties

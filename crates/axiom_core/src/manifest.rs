@@ -203,6 +203,59 @@ impl Manifest {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct ManifestMut {
+    inner: toml_edit::DocumentMut,
+}
+
+impl std::str::FromStr for ManifestMut {
+    type Err = ManifestError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self {
+            inner: s.parse().map_err(ManifestError::parse_failed)?,
+        })
+    }
+}
+
+impl std::fmt::Display for ManifestMut {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner.to_string())
+    }
+}
+
+impl ManifestMut {
+    pub fn from_directory<P>(directory: P) -> Result<Self, ManifestError>
+    where
+        P: AsRef<std::path::Path>,
+    {
+        let filepath = Manifest::filepath(directory.as_ref());
+        Self::from_filepath(filepath)
+    }
+
+    pub fn from_filepath<P>(filepath: P) -> Result<Self, ManifestError>
+    where
+        P: AsRef<std::path::Path>,
+    {
+        let contents = std::fs::read_to_string(&filepath).map_err(|err| match err.kind() {
+            std::io::ErrorKind::NotFound => ManifestError::not_found(&filepath, err),
+            _ => ManifestError::read_failed(err),
+        })?;
+
+        Ok(Self {
+            inner: contents.parse().map_err(ManifestError::parse_failed)?,
+        })
+    }
+
+    pub fn set_version(&mut self, version: &str) {
+        self.inner["server"]["version"] = toml_edit::value(version);
+    }
+
+    pub fn set_build(&mut self, build: i64) {
+        self.inner["server"]["build"] = toml_edit::value(build);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

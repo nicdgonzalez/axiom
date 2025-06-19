@@ -4,8 +4,10 @@ mod status;
 mod status_ext;
 mod update;
 
+use crate::context::Context;
+
 pub trait Run {
-    fn run(&self) -> Result<(), anyhow::Error>;
+    fn run(&self, ctx: &Context) -> Result<(), anyhow::Error>;
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -23,12 +25,14 @@ pub enum Subcommand {
 }
 
 pub fn handle_subcommand(subcommand: &Subcommand) -> anyhow::Result<()> {
+    let ctx = Context::new();
+
     let result = match subcommand {
-        Subcommand::Build(handler) => handler.run(),
-        Subcommand::Start(handler) => handler.run(),
-        Subcommand::Status(handler) => handler.run(),
-        Subcommand::StatusExt(handler) => handler.run(),
-        Subcommand::Update(handler) => handler.run(),
+        Subcommand::Build(handler) => handler.run(&ctx),
+        Subcommand::Start(handler) => handler.run(&ctx),
+        Subcommand::Status(handler) => handler.run(&ctx),
+        Subcommand::StatusExt(handler) => handler.run(&ctx),
+        Subcommand::Update(handler) => handler.run(&ctx),
     };
 
     result

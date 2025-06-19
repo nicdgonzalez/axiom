@@ -4,7 +4,7 @@ use anyhow::Context;
 use colored::Colorize;
 
 use crate::commands::Run;
-use axiom_core::Manifest;
+use axiom_core::{Manifest, ManifestMut};
 
 #[derive(Debug, clap::Args)]
 pub struct Update {
@@ -25,7 +25,9 @@ pub struct Update {
 }
 
 impl Run for Update {
-    fn run(&self) -> Result<(), anyhow::Error> {
+    fn run(&self, ctx: &crate::context::Context) -> Result<(), anyhow::Error> {
+        // TODO: Create a static list of valid versions, and only fetch dynamically if the version
+        // provided is not in the list. This way we can only call PaperMC for the latest build.
         let versions = paper::versions().with_context(|| "failed to get valid versions")?;
 
         let version = match &self.version {
@@ -47,8 +49,7 @@ impl Run for Update {
             .pop()
             .with_context(|| "no builds available")?;
 
-        let directory = std::env::current_dir().expect("failed to get the current directory");
-        let manifest = Manifest::from_filepath(Manifest::filepath(&directory))?;
+        let manifest = ctx.manifest().with_context(|| "failed to get manifest")?;
 
         // You don't need to explicitly pass the experimental flag, if you are already on an
         // experimental build.
@@ -75,14 +76,13 @@ impl Run for Update {
         if !self.allow_downgrade {
             tracing::info!("Checking which version is currently installed...");
             if let Some(before) =
-                installed_version(&directory).with_context(|| "failed to get installed version")?
+                installed_version(&ctx.cwd()).with_context(|| "failed to get installed version")?
             {
                 ensure_no_downgrade(&before, version)?;
             }
         }
 
-        let jars = directory.join("jars");
-        let paper_jar = jars.join(build.download_name());
+        let paper_jar = ctx.jars().join(build.download_name());
 
         if paper_jar.exists() {
             tracing::info!("Already using the latest build");
@@ -93,14 +93,15 @@ impl Run for Update {
                 .download(std::time::Duration::from_secs(self.timeout))
                 .with_context(|| "failed to download new server")?;
 
-            std::fs::create_dir_all(&jars).with_context(|| "failed to create 'jars' directory")?;
+            std::fs::create_dir_all(&ctx.jars())
+                .with_context(|| "failed to create 'jars' directory")?;
             std::fs::write(&paper_jar, &data).with_context(|| "failed to save new server")?;
         }
 
-        let server = directory.join("server");
-        std::fs::create_dir_all(&server).with_context(|| "failed to create 'server' directory")?;
+        std::fs::create_dir_all(ctx.server())
+            .with_context(|| "failed to create 'server' directory")?;
 
-        let server_jar = server.join("server.jar");
+        let server_jar = ctx.server().join("server.jar");
 
         if let Err(err) = std::fs::remove_file(&server_jar) {
             match err.kind() {
@@ -114,13 +115,14 @@ impl Run for Update {
             .with_context(|| "failed to link new server.jar")?;
 
         // Update the configuration file to reflect the new version.
-        let config_file = Manifest::filepath(directory);
+        let manifest_filepath = Manifest::filepath(ctx.cwd());
 
-        let mut doc = std::fs::read_to_string(&config_file)?.parse::<toml_edit::DocumentMut>()?;
-        doc["server"]["version"] = toml_edit::value(version.as_str());
-        doc["server"]["build"] = toml_edit::value(i64::from(build.number()));
-        std::fs::write(&config_file, doc.to_string())
-            .with_context(|| "failed to update the version in the configuration file")?;
+        let mut updated_manifest = ManifestMut::from_filepath(&manifest_filepath)?;
+        updated_manifest.set_version(version.as_str());
+        updated_manifest.set_build(i64::from(build.number()));
+
+        std::fs::write(&manifest_filepath, updated_manifest.to_string())
+            .with_context(|| "failed to set new version and build in the manifest")?;
 
         tracing::info!(
             "Server is running Minecraft version {} (#{})",

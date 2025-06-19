@@ -16,10 +16,10 @@ pub struct Build {
 }
 
 impl Run for Build {
-    fn run(&self) -> Result<(), anyhow::Error> {
+    fn run(&self, ctx: &crate::context::Context) -> Result<(), anyhow::Error> {
         let directory = std::env::current_dir().expect("failed to get current directory");
-        let config = Manifest::from_filepath(Manifest::filepath(&directory))
-            .with_context(|| "failed to load configuration")?;
+        let config =
+            Manifest::from_directory(&directory).with_context(|| "failed to load configuration")?;
 
         let server = directory.join("server");
         std::fs::create_dir_all(&server).with_context(|| "failed to create 'server' directory")?;
@@ -27,12 +27,15 @@ impl Run for Build {
         let mut stderr = std::io::stderr().lock();
 
         tracing::info!("Running the update command to download the latest build");
-        if let Err(err) = Update::run(&Update {
-            version: Some(config.server.version),
-            allow_experimental: true,
-            allow_downgrade: true,
-            timeout: 120,
-        }) {
+        if let Err(err) = Update::run(
+            &Update {
+                version: Some(config.server.version),
+                allow_experimental: true,
+                allow_downgrade: true,
+                timeout: 120,
+            },
+            &ctx,
+        ) {
             return Err(
                 crate::Error::new("failed to get server.jar".to_owned(), Some(err.into())).into(),
             );

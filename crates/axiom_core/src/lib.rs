@@ -2,4 +2,4 @@
 
 mod manifest;
 
-pub use manifest::Manifest;
+pub use manifest::{Manifest, ManifestMut};

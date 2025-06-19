@@ -7,14 +7,11 @@ use super::build::Build;
 use crate::commands::Run;
 
 #[derive(Debug, Clone, clap::Args)]
-pub struct Start {
-    #[clap(flatten)]
-    pub cwd: crate::args::BaseDirectory,
-}
+pub struct Start {}
 
 impl Run for Start {
-    fn run(&self) -> Result<(), anyhow::Error> {
-        let directory = self.cwd.to_path_buf();
+    fn run(&self, ctx: &crate::context::Context) -> Result<(), anyhow::Error> {
+        let directory = std::env::current_dir().expect("failed to get the current directory");
         let server = directory.join("server");
 
         let mut stderr = std::io::stderr().lock();
@@ -22,10 +19,7 @@ impl Run for Start {
         // Run the build command before starting the server.
         #[rustfmt::skip]
         writeln!(stderr, "Applying any changes made to the configuration file...").ok();
-        Build::run(&Build {
-            cwd: self.cwd.clone(),
-            accept_eula: false,
-        })?;
+        Build::run(&Build { accept_eula: false }, &ctx)?;
 
         let window_name = directory
             .file_name()
