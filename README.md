@@ -69,7 +69,7 @@ axiom new \
     example
 ```
 
-> [!NOTE] \
+> [!NOTE]\
 > To run any of the package-related subcommands, you must be inside of the
 > package.
 
