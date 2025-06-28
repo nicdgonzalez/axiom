@@ -1,6 +1,6 @@
 # Axiom
 
-> [!WARNING] \
+> [!WARNING]\
 > This project is under active development. Expect frequent, breaking changes.
 
 **Axiom** is a command-line tool for managing Paper Minecraft servers.
@@ -103,7 +103,7 @@ axiom update <version>
 axiom update <version> <build>
 ```
 
-> [!NOTE] \
+> [!NOTE]\
 > If the new version is marked as experimental by PaperMC, you need to add the
 > `--allow-experimental` flag.
 >
